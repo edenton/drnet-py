@@ -15,6 +15,7 @@ import functools
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from data.moving_mnist import MovingMNIST
+from data import suncg  
 
 
 hostname = socket.gethostname()
@@ -33,12 +34,12 @@ def load_dataset(opt):
             num_digits=2)
         load_workers = 5
     elif opt.data == 'suncg':
-      train_data = suncg.SUNCGDataHandler(opt.max_step, opt.image_width)
-      test_data = suncg.SUNCGDataHandler(opt.max_step, opt.image_width)
+      train_data = suncg.SUNCG(True, opt.max_step, opt.image_width)
+      test_data = suncg.SUNCG(False, opt.max_step, opt.image_width)
       load_workers = 5
     elif opt.data == 'suncg_dual':
-      train_data = suncg.DualSUNCGDataHandler(opt.max_step, opt.image_width)
-      test_data = suncg.DualSUNCGDataHandler(opt.max_step, opt.image_width)
+      train_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
+      test_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
       load_workers = 5
     return train_data, test_data, load_workers
 
