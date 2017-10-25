@@ -31,7 +31,7 @@ parser.add_argument('--model', default='dcgan', help='model type (dcgan | unet |
 
 
 opt = parser.parse_args()
-name = 'model=%s-content_dim=%d-pose_dim=%d-max_step=%d-sd_weight=%.3f-lr=%d' % (opt.model, opt.content_dim, opt.pose_dim, opt.max_step, opt.sd_weight, opt.lr)
+name = 'model=%s-content_dim=%d-pose_dim=%d-max_step=%d-sd_weight=%.3f-lr=%.3f' % (opt.model, opt.content_dim, opt.pose_dim, opt.max_step, opt.sd_weight, opt.lr)
 opt.log_dir = '%s/%s/%s' % (opt.log_dir, opt.data, name)
 
 os.makedirs('%s/rec/' % opt.log_dir, exist_ok=True)

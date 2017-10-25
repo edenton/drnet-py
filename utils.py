@@ -15,6 +15,7 @@ import functools
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from data.moving_mnist import MovingMNIST
+from data.kth import KTH 
 from data import suncg  
 
 
@@ -41,6 +42,10 @@ def load_dataset(opt):
       train_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
       test_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
       load_workers = 5
+    elif opt.data == 'kth':
+      train_data = KTH(True, opt.max_step, opt.image_width)
+      test_data = KTH(False, opt.max_step, opt.image_width)
+      load_workers = 0
     return train_data, test_data, load_workers
 
 def sequence_input(seq, dtype):
@@ -53,7 +58,7 @@ def normalize_data(opt, dtype, sequence):
             sequence.transpose_(3, 4).transpose_(2, 3)
         else:
             sequence.unsqueeze_(2)
-    elif opt.data == 'suncg' or opt.data == 'suncg_dual':
+    elif opt.data == 'suncg' or opt.data == 'suncg_dual' or opt.data == 'kth':
         sequence.transpose_(0, 1)
         sequence.transpose_(3, 4).transpose_(2, 3)
     else:
