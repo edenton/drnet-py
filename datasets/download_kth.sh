@@ -9,10 +9,9 @@ else
   wget $URL -P $TARGET_DIR/processed
   tar -zxvf $TARGET_DIR/processed/kth.tar.gz -C $TARGET_DIR/processed/
   rm $TARGET_DIR/processed/kth.tar.gz
-  mv $TARGET_DIR/processed/kth $TARGET_DIR/processed/meta
 
   for c in walking jogging running handwaving handclapping boxing
-  do
+  do  
     URL=http://www.nada.kth.se/cvap/actions/"$c".zip
     wget $URL -P $TARGET_DIR/raw
     mkdir $TARGET_DIR/raw/$c
