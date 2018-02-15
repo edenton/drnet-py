@@ -1,10 +1,4 @@
 # drnet-py
- 
-Pytorch version of the DrNet project. This code is still a work-in-progress. Scripts for downloading SUNCG and KTH are missing, but everything else should be mostly usable.
-
-I will be msot responsive regarding questions about the code if you email me at denton@cs.nyu.edu.
-
-
 
 ##  Training on KTH
 First download the KTH action recognition dataset by running:
@@ -16,3 +10,6 @@ where /my/kth/data/path/ is the directory the data will be downloaded into. Next
 th datasets/convert_kth.lua --dataRoot /my/kth/data/path/ --imageSize 128
 ```
 The ```--imageSize``` flag specifiec the image resolution. Experimental results in the paper used 128x128, but you can also train a model on 64x64 and it will train much faster.
+
+### fyi
+I will be most responsive regarding questions about the code if you email me at denton@cs.nyu.edu.
