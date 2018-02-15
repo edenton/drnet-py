@@ -2,17 +2,12 @@ import socket
 import numpy as np
 from torchvision import datasets, transforms
 
-hostname = socket.gethostname()
-if hostname == 'ned':
-    path = '/home/denton/data/mnist/' #/speedy/data/mnist/'
-else:
-    path = '/misc/vlgscratch4/FergusGroup/denton/data/mnist/'
-
 class MovingMNIST(object):
     
     """Data Handler that creates Bouncing MNIST dataset on the fly."""
 
-    def __init__(self, train, seq_len=20, num_digits=2, image_size=64):
+    def __init__(self, train, data_root, seq_len=20, num_digits=2, image_size=64):
+        path = data_root
         self.seq_len = seq_len
         self.num_digits = num_digits  
         self.image_size = image_size 

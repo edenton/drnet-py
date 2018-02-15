@@ -22,43 +22,54 @@ from data import suncg
 hostname = socket.gethostname()
 
 def load_dataset(opt):
-    if opt.data == 'moving_mnist':
+    if opt.dataset == 'moving_mnist':
         train_data = MovingMNIST(
-            train=True,
-            seq_len=opt.max_step,
-            image_size=opt.image_width,
-            num_digits=2)
+                train=True,
+                data_root=opt.data_root,
+                seq_len=opt.max_step,
+                image_size=opt.image_width,
+                num_digits=2)
         test_data = MovingMNIST(
-            train=False,
-            seq_len=opt.max_step,
-            image_size=opt.image_width,
-            num_digits=2)
-        load_workers = 5
-    elif opt.data == 'suncg':
-      train_data = suncg.SUNCG(True, opt.max_step, opt.image_width)
-      test_data = suncg.SUNCG(False, opt.max_step, opt.image_width)
-      load_workers = 5
-    elif opt.data == 'suncg_dual':
-      train_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
-      test_data = suncg.DualSUNCG(opt.max_step, opt.image_width)
-      load_workers = 5
-    elif opt.data == 'kth':
-      train_data = KTH(True, opt.max_step, opt.image_width)
-      test_data = KTH(False, opt.max_step, opt.image_width)
-      load_workers = 0
-    return train_data, test_data, load_workers
+                train=False,
+                data_root=opt.data_root,
+                seq_len=opt.max_step,
+                image_size=opt.image_width,
+                num_digits=2)
+    elif opt.dataset == 'suncg':
+        train_data = suncg.SUNCG(
+                train=True, 
+                data_root=opt.data_root,
+                seq_len=opt.max_step, 
+                image_size=opt.image_width)
+        test_data = suncg.SUNCG(
+                train=False, 
+                data_root=opt.data_root,
+                seq_len=opt.max_step, 
+                image_size=opt.image_width)
+    elif opt.dataset == 'kth':
+        train_data = KTH(
+                train=True, 
+                data_root=opt.data_root,
+                seq_len=opt.max_step, 
+                image_size=opt.image_width)
+        test_data = KTH(
+                train=False, 
+                data_root=opt.data_root,
+                seq_len=opt.max_step, 
+                image_size=opt.image_width)
+    return train_data, test_data
 
 def sequence_input(seq, dtype):
     return [Variable(x.type(dtype)) for x in seq]
 
 def normalize_data(opt, dtype, sequence):
-    if opt.data == 'moving_mnist':
+    if opt.dataset == 'moving_mnist':
         sequence.transpose_(0, 1)
         if opt.channels > 1:
             sequence.transpose_(3, 4).transpose_(2, 3)
         else:
             sequence.unsqueeze_(2)
-    elif opt.data == 'suncg' or opt.data == 'suncg_dual' or opt.data == 'kth':
+    elif opt.dataset == 'suncg' or opt.dataset == 'suncg_dual' or opt.dataset == 'kth':
         sequence.transpose_(0, 1)
         sequence.transpose_(3, 4).transpose_(2, 3)
     else:
@@ -152,3 +163,19 @@ def clear_progressbar():
     # moves up two lines again
     print("\033[2A")
 
+def init_weights(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1 or classname.find('Linear') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+        m.bias.data.fill_(0)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+def init_weights(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1 or classname.find('Linear') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+        m.bias.data.fill_(0)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)

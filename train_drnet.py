@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import utils
 import itertools
+import progressbar
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', default=0.002, type=float, help='learning rate')
@@ -24,15 +25,19 @@ parser.add_argument('--content_dim', type=int, default=128, help='size of the co
 parser.add_argument('--pose_dim', type=int, default=10, help='size of the pose vector')
 parser.add_argument('--image_width', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--channels', default=3, type=int)
-parser.add_argument('--data', default='moving_mnist', help='dataset to train with')
+parser.add_argument('--dataset', default='moving_mnist', help='dataset to train with')
 parser.add_argument('--max_step', type=int, default=12, help='maximum distance between frames')
-parser.add_argument('--sd_weight', type=float, default=0.01, help='weight on adversarial loss')
-parser.add_argument('--model', default='dcgan', help='model type (dcgan | unet | resnet)')
+parser.add_argument('--sd_weight', type=float, default=0.0001, help='weight on adversarial loss')
+parser.add_argument('--sd_nf', type=int, default=100, help='number of layers')
+parser.add_argument('--content_model', default='dcgan_unet', help='model type (dcgan | dcgan_unet | vgg_unet)')
+parser.add_argument('--pose_model', default='dcgan', help='model type (dcgan | unet | resnet)')
+parser.add_argument('--data_threads', type=int, default=5, help='number of parallel data loading threads')
+parser.add_argument('--normalize', action='store_true', help='if true, normalize pose vector')
 
 
 opt = parser.parse_args()
-name = 'model=%s-content_dim=%d-pose_dim=%d-max_step=%d-sd_weight=%.3f-lr=%.3f' % (opt.model, opt.content_dim, opt.pose_dim, opt.max_step, opt.sd_weight, opt.lr)
-opt.log_dir = '%s/%s/%s' % (opt.log_dir, opt.data, name)
+name = 'content_model=%s-pose_model=%s-content_dim=%d-pose_dim=%d-max_step=%d-sd_weight=%.3f-lr=%.3f-sd_nf=%d-normalize=%s' % (opt.content_model, opt.pose_model, opt.content_dim, opt.pose_dim, opt.max_step, opt.sd_weight, opt.lr, opt.sd_nf, opt.normalize)
+opt.log_dir = '%s/%s/%s' % (opt.log_dir, opt.dataset, name)
 
 os.makedirs('%s/rec/' % opt.log_dir, exist_ok=True)
 os.makedirs('%s/analogy/' % opt.log_dir, exist_ok=True)
@@ -45,28 +50,43 @@ torch.manual_seed(opt.seed)
 torch.cuda.manual_seed_all(opt.seed)
 dtype = torch.cuda.FloatTensor
 
+if opt.image_width == 64:
+    import models.resnet_64 as resnet_models
+    import models.dcgan_64 as dcgan_models
+    import models.dcgan_unet_64 as dcgan_unet_models
+    import models.vgg_unet_64 as vgg_unet_models
+elif opt.image_width == 128:
+    import models.resnet_128 as resnet_models
+    import models.dcgan_128 as dcgan_models
+    import models.dcgan_unet_128 as dcgan_unet_models
+    import models.vgg_unet_128 as vgg_unet_models
 
-# ---------------- create the models  ----------------
-if opt.model == 'dcgan':
-    if opt.image_width == 64:
-        import models.dcgan_64 as models
-    elif opt.image_width == 128:
-        import models.dcgan_128 as models
-if opt.model == 'resnet':
-    if opt.image_width == 64:
-        raise ValueError('resnet_64 not implemented yet!')
-    elif opt.image_width == 128:
-        import models.resnet_128 as models
-elif opt.model == 'unet':
-    if opt.image_width == 64:
-        import models.unet_64 as models
-    elif opt.image_width == 128:
-        raise ValueError('unet_128 not implemented yet!')
+if opt.content_model == 'dcgan_unet':
+    netEC = dcgan_unet_models.content_encoder(opt.content_dim, opt.channels)
+    netD = dcgan_unet_models.decoder(opt.content_dim, opt.pose_dim, opt.channels)
+elif opt.content_model == 'vgg_unet':
+    netEC = vgg_unet_models.content_encoder(opt.content_dim, opt.channels)
+    netD = vgg_unet_models.decoder(opt.content_dim, opt.pose_dim, opt.channels)
+elif opt.content_model == 'dcgan':
+    netEC = dcgan_models.content_encoder(opt.content_dim, opt.channels)
+    netD = dcgan_models.decoder(opt.content_dim, opt.pose_dim, opt.channels)
+else:
+    raise ValueError('Unknown content model: %s' % opt.content_model)
 
-netC = models.scene_discriminator(opt.pose_dim)
-netEC = models.content_encoder(opt.content_dim, opt.channels)
-netEP = models.pose_encoder(opt.pose_dim, opt.channels)
-netD = models.decoder(opt.content_dim, opt.pose_dim, opt.channels)
+if opt.pose_model == 'dcgan':
+    netEP = dcgan_models.pose_encoder(opt.pose_dim, opt.channels, normalize=opt.normalize)
+elif opt.pose_model == 'resnet':
+    netEP = resnet_models.pose_encoder(opt.pose_dim, opt.channels, normalize=opt.normalize)
+else:
+    raise ValueError('Unknown pose model: %s' % opt.pose_model)
+
+import models.classifiers as classifiers
+netC = classifiers.scene_discriminator(opt.pose_dim, opt.sd_nf)
+
+netEC.apply(utils.init_weights)
+netEP.apply(utils.init_weights)
+netD.apply(utils.init_weights)
+netC.apply(utils.init_weights)
 
 # ---------------- optimizers ----------------
 if opt.optimizer == 'adam':
@@ -85,7 +105,7 @@ optimizerD = opt.optimizer(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999
 
 # --------- loss functions ------------------------------------
 mse_criterion = nn.MSELoss()
-bce_criterion = nn.MSELoss()
+bce_criterion = nn.BCELoss()
 
 # --------- transfer to gpu ------------------------------------
 netEP.cuda()
@@ -96,16 +116,16 @@ mse_criterion.cuda()
 bce_criterion.cuda()
 
 # --------- load a dataset ------------------------------------
-train_data, test_data, load_workers = utils.load_dataset(opt)
+train_data, test_data = utils.load_dataset(opt)
 
 train_loader = DataLoader(train_data,
-                          num_workers=load_workers,
+                          num_workers=opt.data_threads,
                           batch_size=opt.batch_size,
                           shuffle=True,
                           drop_last=True,
                           pin_memory=True)
 test_loader = DataLoader(test_data,
-                         num_workers=load_workers,
+                         num_workers=opt.data_threads,
                          batch_size=opt.batch_size,
                          shuffle=True,
                          drop_last=True,
@@ -170,30 +190,6 @@ def plot_analogy(x, epoch):
     fname = '%s/analogy/%d.png' % (opt.log_dir, epoch) 
     utils.save_tensors_image(fname, to_plot)
 
-def plot_ind(x, epoch):
-    x_c = x[0]
-
-    h_c = netEC(x_c)
-    nrow = 10
-    row_sz = opt.max_step 
-    to_plot = []
-    row = [xi[0].data for xi in x]
-    zeros = torch.zeros(opt.channels, opt.image_width, opt.image_width)
-    to_plot.append([zeros] + row)
-    for i in range(nrow):
-        to_plot.append([x[0][i].data])
-
-    for j in range(0, row_sz):
-        h_p = netEP(x[j]).data
-        for i in range(nrow):
-            h_p[i] = h_p[0]
-        rec = netD([h_c, Variable(h_p)])
-        for i in range(nrow):
-            to_plot[i+1].append(rec[i].data.clone())
-
-    fname = '%s/analogy/%d.png' % (opt.log_dir, epoch) 
-    utils.save_tensors_image(fname, to_plot)
-
 # --------- training funtions ------------------------------------
 def train(x):
     netEP.zero_grad()
@@ -206,13 +202,13 @@ def train(x):
     x_p2 = x[random.randint(1, opt.max_step-1)]
 
     h_c1 = netEC(x_c1)
-    h_c2 = Variable(netEC(x_c2)[0].data if opt.model == 'unet' else netEC(x_c2).data, requires_grad=False) # used as target for sim loss
+    h_c2 = Variable(netEC(x_c2)[0].data if opt.content_model[-4:] == 'unet' else netEC(x_c2).data, requires_grad=False) # used as target for sim loss
     h_p1 = netEP(x_p1) # used for scene discriminator
     h_p2 = netEP(x_p2).detach()
 
 
     # similarity loss: ||h_c1 - h_c2||
-    sim_loss = mse_criterion(h_c1[0] if opt.model == 'unet' else h_c1, h_c2)
+    sim_loss = mse_criterion(h_c1[0] if opt.content_model[-4:] == 'unet' else h_c1, h_c2)
 
 
     # reconstruction loss: ||D(h_c1, h_p1), x_p1|| 
@@ -266,7 +262,10 @@ for epoch in range(opt.niter):
     netD.train()
     netC.train()
     epoch_sim_loss, epoch_rec_loss, epoch_sd_loss, epoch_sd_acc = 0, 0, 0, 0
+
+    progress = progressbar.ProgressBar(max_value=opt.epoch_size).start()
     for i in range(opt.epoch_size):
+        progress.update(i+1)
         x = next(training_batch_generator)
 
         # train scene discriminator
@@ -280,9 +279,12 @@ for epoch in range(opt.niter):
         epoch_rec_loss += rec_loss
 
 
-    #netEP.eval()
+    progress.finish()
+    utils.clear_progressbar()
+
+    netEP.eval()
     #netEC.eval()
-    #netD.eval()
+    netD.eval()
     #netC.eval()
     # plot some stuff
     x = next(testing_batch_generator)
@@ -297,4 +299,4 @@ for epoch in range(opt.niter):
         'netEP': netEP,
         'netEC': netEC,
         'opt': opt},
-        '%s/model.pth.tar' % opt.log_dir)
+        '%s/model.pth' % opt.log_dir)

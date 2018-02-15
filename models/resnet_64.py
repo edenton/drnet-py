@@ -10,7 +10,6 @@ class pose_encoder(nn.Module):
 
     def forward(self, input):
         output = self.main(input)
-
         if self.normalize:
             return nn.functional.normalize(output, p=2)
         else:
@@ -107,8 +106,7 @@ class resnet18(nn.Module):
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-    self.layer5 = self._make_layer(block, 1024, layers[3], stride=2)
-    self.conv_out = nn.Conv2d(1024, pose_dim, kernel_size=3)
+    self.conv_out = nn.Conv2d(512, pose_dim, kernel_size=3)
     self.bn_out = nn.BatchNorm2d(pose_dim)
 
     for m in self.modules():
@@ -146,11 +144,11 @@ class resnet18(nn.Module):
     x = self.layer2(x)
     x = self.layer3(x)
     x = self.layer4(x)
-    x = self.layer5(x)
 
     x = self.conv_out(x)
     x = self.bn_out(x)
     x = self.tanh(x)
 
     return x
+
     
