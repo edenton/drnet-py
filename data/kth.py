@@ -6,16 +6,6 @@ import torch
 from scipy import misc
 from torch.utils.serialization import load_lua
 
-def download_data(path):
-    full_path = '%s/KTH/processed/' % path
-    if not os.path.isdir(full_path):
-        print('Downloading KTH dataset to %s' % path)
-        import pdb; pdb.set_trace()
-        url = 'http://www.cs.nyu.edu/~denton/datasets/kth.tar.gz'
-        os.system('wget -O %s/kth_data.tar.gz %s' % (path, url))
-        os.system('tar -xzvf %s/kth_data.tar.gz -C %s' % (path, path))
-    return full_path
-
 class KTH(object):
 
     def __init__(self, train, data_root, seq_len = 20, image_size=64):
@@ -69,5 +59,5 @@ class KTH(object):
         return torch.from_numpy(self.get_sequence())
 
     def __len__(self):
-        return len(self.dirs)*36*5
+        return len(self.dirs)*36*5 # arbitrary
 
