@@ -130,7 +130,7 @@ def plot_gen(x, epoch):
 
     lstm.hidden = lstm.init_hidden()
     gen_seq = []
-    h_p = netEP(x[0])
+    h_p = netEP(x[0]).detach()
     gen_seq.append(x[0])
     for i in range(1, opt.n_past+opt.n_future):
         if i < opt.n_past:
@@ -139,7 +139,7 @@ def plot_gen(x, epoch):
             gen_seq.append(x[i])
         else:
             h_p = lstm(torch.cat([h_p, vec_h_c], 1))
-            pred_x = netD([h_c, h_p])
+            pred_x = netD([h_c, h_p]).detach()
             gen_seq.append(pred_x)
 
     to_plot = []

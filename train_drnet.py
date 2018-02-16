@@ -26,7 +26,7 @@ parser.add_argument('--pose_dim', type=int, default=10, help='size of the pose v
 parser.add_argument('--image_width', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--channels', default=3, type=int)
 parser.add_argument('--dataset', default='moving_mnist', help='dataset to train with')
-parser.add_argument('--max_step', type=int, default=12, help='maximum distance between frames')
+parser.add_argument('--max_step', type=int, default=20, help='maximum distance between frames')
 parser.add_argument('--sd_weight', type=float, default=0.0001, help='weight on adversarial loss')
 parser.add_argument('--sd_nf', type=int, default=100, help='number of layers')
 parser.add_argument('--content_model', default='dcgan_unet', help='model type (dcgan | dcgan_unet | vgg_unet)')
