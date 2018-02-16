@@ -27,7 +27,7 @@ parser.add_argument('--data', default='moving_mnist', help='dataset to train wit
 parser.add_argument('--n_past', type=int, default=10, help='number of frames to condition on')
 parser.add_argument('--n_future', type=int, default=10, help='number of frames to predict')
 parser.add_argument('--rnn_size', type=int, default=128, help='dimensionality of hidden layer')
-parser.add_argument('--rnn_layers', type=int, default=128, help='number of layers')
+parser.add_argument('--rnn_layers', type=int, default=2, help='number of layers')
 parser.add_argument('--normalize', action='store_true', help='if true, normalize pose vector')
 parser.add_argument('--data_threads', type=int, default=5, help='number of parallel data loading threads')
 
@@ -208,13 +208,13 @@ def train(x):
     mse = 0
     for i in range(1, opt.n_past+opt.n_future):
         pose_pred = lstm(torch.cat([h_p[i-1], h_c], 1)) 
-        if i >= opt.n_past:
-            mse += mse_criterion(pose_pred, h_p[i])
+        #if i >= opt.n_past:
+        mse += mse_criterion(pose_pred, h_p[i])
     mse.backward()
 
     optimizer.step()
 
-    return mse.data.cpu().numpy()/opt.n_future
+    return mse.data.cpu().numpy()/(opt.n_past+opt.n_future)
 
 # --------- training loop ------------------------------------
 for epoch in range(opt.niter):

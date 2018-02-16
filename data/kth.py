@@ -9,7 +9,7 @@ from torch.utils.serialization import load_lua
 class KTH(object):
 
     def __init__(self, train, data_root, seq_len = 20, image_size=64):
-        self.data_root = download_data(data_root)
+        self.data_root = '%s/KTH/processed/' % data_root
         self.seq_len = seq_len
         self.image_size = image_size 
         self.classes = ['boxing', 'handclapping', 'handwaving', 'jogging', 'running', 'walking']
