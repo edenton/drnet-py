@@ -30,6 +30,7 @@ parser.add_argument('--rnn_size', type=int, default=128, help='dimensionality of
 parser.add_argument('--rnn_layers', type=int, default=2, help='number of layers')
 parser.add_argument('--normalize', action='store_true', help='if true, normalize pose vector')
 parser.add_argument('--data_threads', type=int, default=5, help='number of parallel data loading threads')
+parser.add_argument('--data_type', default='sequence', help='speed up data loading for drnet training')
 
 
 opt = parser.parse_args()
@@ -239,7 +240,7 @@ for epoch in range(opt.niter):
     plot_gen(x, epoch)
     plot_rec(x, epoch)
 
-    print('[%02d] mse loss: %.4f (%d)' % (epoch, epoch_loss/opt.epoch_size, epoch*opt.epoch_size*opt.batch_size))
+    print('[%02d] mse loss: %.6f (%d)' % (epoch, epoch_loss/opt.epoch_size, epoch*opt.epoch_size*opt.batch_size))
 
     # save the model
     torch.save({

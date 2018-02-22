@@ -51,12 +51,14 @@ def load_dataset(opt):
                 train=True, 
                 data_root=opt.data_root,
                 seq_len=opt.max_step, 
-                image_size=opt.image_width)
+                image_size=opt.image_width,
+                data_type=opt.data_type)
         test_data = KTH(
                 train=False, 
                 data_root=opt.data_root,
                 seq_len=opt.max_step, 
-                image_size=opt.image_width)
+                image_size=opt.image_width,
+                data_type=opt.data_type)
     return train_data, test_data
 
 def sequence_input(seq, dtype):

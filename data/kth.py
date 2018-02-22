@@ -8,9 +8,10 @@ from torch.utils.serialization import load_lua
 
 class KTH(object):
 
-    def __init__(self, train, data_root, seq_len = 20, image_size=64):
+    def __init__(self, train, data_root, seq_len = 20, image_size=64, data_type='drnet'):
         self.data_root = '%s/KTH/processed/' % data_root
         self.seq_len = seq_len
+        self.data_type = data_type
         self.image_size = image_size 
         self.classes = ['boxing', 'handclapping', 'handwaving', 'jogging', 'running', 'walking']
 
@@ -50,13 +51,37 @@ class KTH(object):
             seq.append(im)
         return np.array(seq)
 
+    # to speed up training of drnet, don't get a whole sequence when we only need 4 frames
+    # x_c1, x_c2, x_p1, x_p2 
+    def get_drnet_data(self):
+        c_idx = np.random.randint(len(self.classes))
+        c = self.classes[c_idx]
+        vid_idx = np.random.randint(len(self.data[c]))
+        vid = self.data[c][vid_idx]
+        seq_idx = np.random.randint(len(vid['files']))
+        dname = '%s/%s/%s' % (self.data_root, c, vid['vid'])
+        seq_len = len(vid['files'][seq_idx])
+           
+        seq = [] 
+        for i in range(4):
+            t = np.random.randint(seq_len)
+            fname = '%s/%s' % (dname, vid['files'][seq_idx][t])
+            im = misc.imread(fname)/255.
+            seq.append(im)
+        return np.array(seq)
+
     def __getitem__(self, index):
         if not self.seed_set:
             self.seed_set = True
             random.seed(index)
             np.random.seed(index)
             #torch.manual_seed(index)
-        return torch.from_numpy(self.get_sequence())
+        if self.data_type == 'drnet':
+            return torch.from_numpy(self.get_drnet_data())
+        elif self.data_type == 'sequence':
+            return torch.from_numpy(self.get_sequence())
+        else:
+            raise ValueError('Unknown data type: %d. Valid type: drnet | sequence.' % self.data_type)
 
     def __len__(self):
         return len(self.dirs)*36*5 # arbitrary

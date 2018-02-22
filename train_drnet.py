@@ -4,6 +4,7 @@ import torch.nn as nn
 import argparse
 import os
 import random
+import numpy as np
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import utils
@@ -33,6 +34,7 @@ parser.add_argument('--content_model', default='dcgan_unet', help='model type (d
 parser.add_argument('--pose_model', default='dcgan', help='model type (dcgan | unet | resnet)')
 parser.add_argument('--data_threads', type=int, default=5, help='number of parallel data loading threads')
 parser.add_argument('--normalize', action='store_true', help='if true, normalize pose vector')
+parser.add_argument('--data_type', default='drnet', help='speed up data loading for drnet training')
 
 
 opt = parser.parse_args()
@@ -148,7 +150,7 @@ testing_batch_generator = get_testing_batch()
 # --------- plotting funtions ------------------------------------
 def plot_rec(x, epoch):
       x_c = x[0]
-      x_p = x[random.randint(1, opt.max_step-1)]
+      x_p = x[np.random.randint(1, opt.max_step)]
 
       h_c = netEC(x_c)
       h_p = netEP(x_p)
@@ -196,13 +198,14 @@ def train(x):
     netEC.zero_grad()
     netD.zero_grad()
 
+    #x_c1 = x[0]
     x_c1 = x[0]
-    x_c2 = x[random.randint(1, opt.max_step-1)]
-    x_p1 = x[random.randint(1, opt.max_step-1)]
-    x_p2 = x[random.randint(1, opt.max_step-1)]
+    x_c2 = x[1]
+    x_p1 = x[2]
+    x_p2 = x[3]
 
     h_c1 = netEC(x_c1)
-    h_c2 = Variable(netEC(x_c2)[0].data if opt.content_model[-4:] == 'unet' else netEC(x_c2).data, requires_grad=False) # used as target for sim loss
+    h_c2 = netEC(x_c2)[0].detach() if opt.content_model[-4:] == 'unet' else netEC(x_c2).detach() # used as target for sim loss
     h_p1 = netEP(x_p1) # used for scene discriminator
     h_p2 = netEP(x_p2).detach()
 
@@ -236,7 +239,7 @@ def train_scene_discriminator(x):
     target = torch.cuda.FloatTensor(opt.batch_size, 1)
 
     x1 = x[0]
-    x2 = x[random.randint(1, opt.max_step-1)]
+    x2 = x[1]
     h_p1 = netEP(x1).detach()
     h_p2 = netEP(x2).detach()
 
