@@ -169,7 +169,6 @@ def plot_rec(x, epoch):
 
 def plot_analogy(x, epoch):
     x_c = x[0]
-    
 
     h_c = netEC(x_c)
     nrow = 10

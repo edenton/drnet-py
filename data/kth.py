@@ -17,9 +17,11 @@ class KTH(object):
 
         self.dirs = os.listdir(self.data_root)
         if train:
+            self.train = True
             data_type = 'train'
             self.persons = list(range(1, 21))
         else:
+            self.train = False
             self.persons = list(range(21, 26))
             data_type = 'test'
 
@@ -76,10 +78,10 @@ class KTH(object):
             random.seed(index)
             np.random.seed(index)
             #torch.manual_seed(index)
-        if self.data_type == 'drnet':
-            return torch.from_numpy(self.get_drnet_data())
-        elif self.data_type == 'sequence':
+        if not self.train or self.data_type == 'sequence':
             return torch.from_numpy(self.get_sequence())
+        elif self.data_type == 'drnet':
+            return torch.from_numpy(self.get_drnet_data())
         else:
             raise ValueError('Unknown data type: %d. Valid type: drnet | sequence.' % self.data_type)
 
