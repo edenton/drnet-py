@@ -16,7 +16,6 @@ parser.add_argument('--lr', default=0.002, type=float, help='learning rate')
 parser.add_argument('--beta1', default=0.9, type=float, help='momentum term for adam')
 parser.add_argument('--batch_size', default=100, type=int, help='batch size')
 parser.add_argument('--log_dir', default='/misc/vlgscratch4/FergusGroup/denton/drnetpy_logs/', help='base directory to save logs')
-parser.add_argument('--name', default='', help='identifierfor directory')
 parser.add_argument('--data_root', default='', help='root directory for data')
 parser.add_argument('--optimizer', default='adam', help='optimizer to train with')
 parser.add_argument('--niter', type=int, default=200, help='number of epochs to train for')
@@ -39,7 +38,7 @@ parser.add_argument('--data_type', default='drnet', help='speed up data loading 
 
 opt = parser.parse_args()
 name = 'content_model=%s-pose_model=%s-content_dim=%d-pose_dim=%d-max_step=%d-sd_weight=%.3f-lr=%.3f-sd_nf=%d-normalize=%s' % (opt.content_model, opt.pose_model, opt.content_dim, opt.pose_dim, opt.max_step, opt.sd_weight, opt.lr, opt.sd_nf, opt.normalize)
-opt.log_dir = '%s/%s/%s' % (opt.log_dir, opt.dataset, name)
+opt.log_dir = '%s/%s%dx%d/%s' % (opt.log_dir, opt.dataset, opt.image_width, opt.image_width, name)
 
 os.makedirs('%s/rec/' % opt.log_dir, exist_ok=True)
 os.makedirs('%s/analogy/' % opt.log_dir, exist_ok=True)
