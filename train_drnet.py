@@ -13,9 +13,9 @@ import progressbar
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', default=0.002, type=float, help='learning rate')
-parser.add_argument('--beta1', default=0.9, type=float, help='momentum term for adam')
+parser.add_argument('--beta1', default=0.5, type=float, help='momentum term for adam')
 parser.add_argument('--batch_size', default=100, type=int, help='batch size')
-parser.add_argument('--log_dir', default='/misc/vlgscratch4/FergusGroup/denton/drnetpy_logs/', help='base directory to save logs')
+parser.add_argument('--log_dir', default='logs', help='base directory to save logs')
 parser.add_argument('--data_root', default='', help='root directory for data')
 parser.add_argument('--optimizer', default='adam', help='optimizer to train with')
 parser.add_argument('--niter', type=int, default=200, help='number of epochs to train for')
@@ -284,9 +284,8 @@ for epoch in range(opt.niter):
     utils.clear_progressbar()
 
     netEP.eval()
-    #netEC.eval()
+    netEC.eval()
     netD.eval()
-    #netC.eval()
     # plot some stuff
     x = next(testing_batch_generator)
     plot_rec(x, epoch)

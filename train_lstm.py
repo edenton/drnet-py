@@ -59,6 +59,7 @@ opt.pose_dim = drnet_opt.pose_dim
 opt.content_dim = drnet_opt.content_dim
 opt.image_width = drnet_opt.image_width
 opt.dataset = drnet_opt.dataset
+opt.data_root = drnet_opt.data_root
 
 print(opt)
 
